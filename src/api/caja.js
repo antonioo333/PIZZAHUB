@@ -24,7 +24,10 @@ export const getCajaAbierta = async (token) => {
 /**
  * Abrir una nueva caja
  */
-export const abrirCaja = async (token, saldoInicial, empleadoId) => {
+/**
+ * Abrir una nueva caja (con fecha elegida manualmente)
+ */
+export const abrirCaja = async (token, saldoInicial, empleadoId, fechaApertura) => {
   const response = await callApi('/api/Caja/abrir', {
     method: "POST",
     headers: {
@@ -34,6 +37,7 @@ export const abrirCaja = async (token, saldoInicial, empleadoId) => {
     body: JSON.stringify({
       saldoInicial: parseFloat(saldoInicial),
       empleadoId: empleadoId || null,
+      fechaApertura: fechaApertura || null, // 👈 MANDAMOS FECHA DESDE EL FRONT
     }),
   });
 
@@ -44,6 +48,7 @@ export const abrirCaja = async (token, saldoInicial, empleadoId) => {
 
   return response.json();
 };
+
 
 /**
  * Cerrar caja y obtener resumen
