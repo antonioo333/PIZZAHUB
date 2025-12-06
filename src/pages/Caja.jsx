@@ -8,7 +8,7 @@ import {
   CFormInput,
   CFormLabel,
 } from "@coreui/react";
-import { getCajaAbierta, abrirCaja, cerrarCaja } from "../api/cajaApi";
+import { getCajaAbierta, abrirCaja, cerrarCaja } from "../api/caja";
 
 const Caja = ({ token, empleadoId }) => {
   const [cajaAbierta, setCajaAbierta] = useState(null);
@@ -43,6 +43,7 @@ const Caja = ({ token, empleadoId }) => {
         return;
       }
 
+      console.log('Abrir caja payload:', { saldoInicial, empleadoId, fechaApertura });
       await abrirCaja(token, saldoInicial, empleadoId, fechaApertura);
 
       alert("Caja abierta correctamente.");
