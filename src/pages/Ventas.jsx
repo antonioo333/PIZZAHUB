@@ -125,36 +125,37 @@ const Ventas = () => {
   // -------------------------------
   const fetchCajas = async () => {
     try {
-      const responseAbierta = await callApi('/api/Caja/abierta', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (responseAbierta.ok) {
-        const caja = await responseAbierta.json();
-        console.log("Caja abierta encontrada:", caja);
-        setCajas([caja]);
-        return [caja];
-      }
-
-      console.log("No hay caja abierta, intentando listar todas...");
+      // Intentar obtener todas las cajas (API moderna)
       const responseAll = await callApi('/api/Caja', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (!responseAll.ok) {
-        throw new Error("Error al obtener cajas");
+        // Fallback a endpoint antiguo que devuelve la caja abierta
+        const responseAbierta = await callApi('/api/Caja/abierta', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (responseAbierta.ok) {
+          const caja = await responseAbierta.json();
+          setCajas([caja]);
+          return [caja];
+        }
+        throw new Error('Error al obtener cajas');
       }
 
       const data = await responseAll.json();
-      console.log("Todas las cajas:", data);
-      
-      const cajasAbiertas = data.filter(c => c.estado === 1);
-      console.log("Cajas filtradas (estado=1):", cajasAbiertas);
+      console.log('Todas las cajas:', data);
+      // Filtrar las cajas que estén en estado 'Abierta' (1)
+      const cajasAbiertas = data.filter(c => {
+        if (c.estado !== undefined) return c.estado === 1;
+        if (c.Estado !== undefined) return c.Estado === 1;
+        return false;
+      });
+      console.log('Cajas filtradas (estado=1):', cajasAbiertas);
       setCajas(cajasAbiertas);
       return cajasAbiertas;
-
     } catch (error) {
-      console.error("Error cargando caja:", error);
+      console.error('Error cargando caja:', error);
       setCajas([]);
       return [];
     }
@@ -246,34 +247,47 @@ useEffect(() => {
   // ABRIR CAJA MANUALMENTE
   // -------------------------------
   const abrirCajaManual = async () => {
-    const empleadoId = prompt("Ingresa el ID del empleado para abrir la caja:");
-    if (!empleadoId) return;
-
     try {
+      const empleadoId = prompt('Ingresa el ID del empleado para abrir la caja:');
+      if (!empleadoId) return;
+
+      // Verificar si ya existe alguna caja abierta en la UI
+      const cajasActuales = await fetchCajas();
+      if (cajasActuales.length > 0) {
+        alert('Ya existe una caja abierta en el sistema. Cierra la caja actual antes de abrir una nueva desde la UI.');
+        return;
+      }
+
+      const saldoInicial = prompt('Ingresa el saldo inicial (ej: 0):', '0');
+      if (saldoInicial === null) return;
+
+      const body = {
+        saldoInicial: parseFloat(saldoInicial) || 0,
+        empleadoId: parseInt(empleadoId),
+        fecha: new Date().toISOString(),
+        windowMinutes: 5
+      };
+
       const response = await callApi('/api/Caja/abrir', {
-        method: "POST",
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          empleadoId: parseInt(empleadoId),
-          saldoInicial: 0
-        })
+        body: JSON.stringify(body)
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Error al abrir caja");
+        const err = await response.json();
+        throw new Error(err.message || 'Error al abrir caja');
       }
 
-      alert("✅ Caja abierta exitosamente");
-      fetchCajas();
+      alert('Caja abierta correctamente');
+      await fetchCajas();
     } catch (error) {
-      console.error("Error abriendo caja:", error);
-      alert("❌ Error: " + error.message);
+      console.error('Error abrirCajaManual:', error);
+      alert('Error: ' + (error.message || error));
     }
-  };
 
   // -------------------------------
   // REGISTRAR VENTA
@@ -499,6 +513,26 @@ useEffect(() => {
                   <p style={{ margin: "4px 0 0 0", color: "#78350F", fontSize: "14px" }}>
                     Debes abrir una caja antes de registrar ventas. Haz clic en "Abrir Caja" arriba.
                   </p>
+                </div>
+              </div>
+            )}
+
+            {/* Mostrar cajas abiertas si existen (pueden ser múltiples en backend) */}
+            {cajas.length > 0 && (
+              <div style={{ width: '100%', marginBottom: '15px' }}>
+                <strong style={{ display: 'block', marginBottom: '8px' }}>Cajas abiertas:</strong>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {cajas.map(c => (
+                    <div key={c.id} style={{ padding: '8px 12px', borderRadius: '8px', background: '#EEF2FF', border: '1px solid #C7D2FE' }}>
+                      <div style={{ fontWeight: '700' }}>Caja #{c.id}</div>
+                      <div style={{ fontSize: '13px', color: '#374151' }}>
+                        Empleado: {c.empleado ? `${c.empleado.nombre} ${c.empleado.apellidos}` : 'N/A'}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                        Apertura: {new Date(c.fechaApertura || c.fecha || c.fechaCreacion || c.fechaCreacionUtc).toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

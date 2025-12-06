@@ -8,7 +8,7 @@ import {
   CFormInput,
   CFormLabel,
 } from "@coreui/react";
-import { getCajaAbierta, abrirCaja, cerrarCaja } from "../api/caja";
+import { getCajaAbierta, abrirCaja, cerrarCaja, getHistorialCajas } from "../api/caja";
 import { getMiEmpleado } from "../api/empleados";
 
 const Caja = ({ token, empleadoId }) => {
@@ -23,10 +23,18 @@ const Caja = ({ token, empleadoId }) => {
   // Obtener caja abierta al cargar
   const fetchCaja = async () => {
     try {
-      const caja = await getCajaAbierta(tokenLocal);
-      setCajaAbierta(caja);
+      const data = await getHistorialCajas(tokenLocal);
+      const cajasAbiertas = (Array.isArray(data) ? data : []).filter(c => c.estado === 1 || c.Estado === 1);
+      setCajaAbierta(cajasAbiertas.length > 0 ? cajasAbiertas[0] : null);
     } catch (error) {
-      console.error("Error al obtener caja:", error);
+      console.error('Error al obtener caja:', error);
+      // Fallback: intentar endpoint dedicado
+      try {
+        const caja = await getCajaAbierta(tokenLocal);
+        setCajaAbierta(caja);
+      } catch (err) {
+        console.warn('Fallback getCajaAbierta also failed:', err);
+      }
     }
   };
 
