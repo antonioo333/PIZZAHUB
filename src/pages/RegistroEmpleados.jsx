@@ -35,7 +35,7 @@ const RegistroEmpleado = () => {
   const [usuarios, setUsuarios] = useState([])
   const [empleados, setEmpleados] = useState([])
 
-  // 🔹 Cargar usuarios con rol 2
+  // 🔹 Cargar usuarios con rol 1
   const fetchUsuarios = async () => {
     try {
       const token = localStorage.getItem('token')
@@ -46,7 +46,7 @@ const RegistroEmpleado = () => {
       const data = await res.json()
 
       const empleadosDisponibles = data
-        .filter((u) => u.usuario && u.usuario.rol === 2)
+        .filter((u) => u.usuario && u.usuario.rol === 1)
         .map((u) => ({
           id: u.usuario.id,
           nombreUsuario: u.usuario.nombreUsuario,
