@@ -37,7 +37,9 @@ export const abrirCaja = async (token, saldoInicial, empleadoId, fechaApertura) 
     body: JSON.stringify({
       saldoInicial: parseFloat(saldoInicial),
       empleadoId: empleadoId || null,
-      fechaApertura: fechaApertura || null, // 👈 MANDAMOS FECHA DESDE EL FRONT
+      // Enviar la fecha con la clave esperada por el backend (p.ej. 'Fecha')
+      // Formateamos a ISO para evitar problemas de zona horaria.
+      fecha: fechaApertura ? new Date(fechaApertura).toISOString() : null,
     }),
   });
 
