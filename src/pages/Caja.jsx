@@ -17,11 +17,12 @@ const Caja = ({ token, empleadoId }) => {
   const [saldoFinal, setSaldoFinal] = useState("");
   const [fechaApertura, setFechaApertura] = useState("");
   const [empleadoIdLocal, setEmpleadoIdLocal] = useState(empleadoId || "");
+  const tokenLocal = token || localStorage.getItem("token");
 
   // Obtener caja abierta al cargar
   const fetchCaja = async () => {
     try {
-      const caja = await getCajaAbierta(token);
+      const caja = await getCajaAbierta(tokenLocal);
       setCajaAbierta(caja);
     } catch (error) {
       console.error("Error al obtener caja:", error);
@@ -40,7 +41,7 @@ const Caja = ({ token, empleadoId }) => {
         const userStr = localStorage.getItem("user");
         const user = userStr ? JSON.parse(userStr) : null;
         if (user && user.id) {
-          const miEmpleado = await getMiEmpleado(token, user.id);
+          const miEmpleado = await getMiEmpleado(tokenLocal, user.id);
           if (miEmpleado && miEmpleado.id) {
             setEmpleadoIdLocal(String(miEmpleado.id));
           }
@@ -51,7 +52,7 @@ const Caja = ({ token, empleadoId }) => {
     };
 
     ensureEmpleado();
-  }, [token, empleadoIdLocal]);
+  }, [tokenLocal, empleadoIdLocal]);
 
   // Abrir caja
   const handleAbrirCaja = async () => {
@@ -67,10 +68,32 @@ const Caja = ({ token, empleadoId }) => {
       }
 
       // Usar el empleadoId local si existe
-      const empleadoParaEnviar = empleadoIdLocal || empleadoId || null;
+      let empleadoParaEnviar = empleadoIdLocal || empleadoId || null;
+
+      // Si aún no tenemos empleado, intentar obtenerlo ahora (por si token no estaba antes)
+      if (!empleadoParaEnviar) {
+        try {
+          const userStr = localStorage.getItem("user");
+          const user = userStr ? JSON.parse(userStr) : null;
+          if (user && user.id) {
+            const miEmpleado = await getMiEmpleado(tokenLocal, user.id);
+            if (miEmpleado && miEmpleado.id) {
+              empleadoParaEnviar = String(miEmpleado.id);
+              setEmpleadoIdLocal(empleadoParaEnviar);
+            }
+          }
+        } catch (err) {
+          console.warn("No se pudo obtener empleado antes de abrir caja:", err);
+        }
+      }
+
+      if (!empleadoParaEnviar) {
+        alert("No se detectó el ID del empleado. Inicia sesión o ingresa el ID manualmente.");
+        return;
+      }
 
       console.log("Abrir caja payload:", { saldoInicial, empleadoParaEnviar, fechaApertura });
-      await abrirCaja(token, saldoInicial, empleadoParaEnviar, fechaApertura);
+      await abrirCaja(tokenLocal, saldoInicial, empleadoParaEnviar, fechaApertura);
 
       alert("Caja abierta correctamente.");
       fetchCaja();
