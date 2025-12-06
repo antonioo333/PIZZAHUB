@@ -17,10 +17,10 @@ const EntradaPedidos = () => {
     observaciones: ""
   });
 
-  // CARGAR PRODUCTOS
+  // CARGAR PRODUCTOS - Solo activos
   const fetchProductos = async () => {
     try {
-      const res = await callApi('/api/Productos', {
+      const res = await callApi('/api/Productos/activos', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -79,42 +79,40 @@ const EntradaPedidos = () => {
     }, 0);
 
   // REGISTRAR PEDIDO
-const registrarPedido = async () => {
-  if (detalles.length === 0)
-    return alert("❌ Agrega al menos un producto.");
+  const registrarPedido = async () => {
+    if (detalles.length === 0)
+      return alert("❌ Agrega al menos un producto.");
 
-  const finalClienteId = clienteId || null;
+    const finalClienteId = clienteId || null;
 
-  const payload = {
-    clienteId: finalClienteId,
-    ...form,
-    detalles
-  };
+    const payload = {
+      clienteId: finalClienteId,
+      ...form,
+      detalles
+    };
 
-  try {
-    const res = await callApi('/api/PedidosNew/registrar', {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(payload)
-    });
+    try {
+      const res = await callApi('/api/PedidosNew/registrar', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
 
-    if (!res.ok) {
-      alert("Error al registrar pedido ❌");
-      return;
+      if (!res.ok) {
+        alert("Error al registrar pedido ❌");
+        return;
+      }
+
+      alert("Pedido registrado con éxito ✔");
+      localStorage.removeItem("pedidoClienteId");
+      navigate('/pages/Enproceso');
+    } catch (e) {
+      console.log("Error:", e);
     }
-
-    alert("Pedido registrado con éxito ✔");
-    localStorage.removeItem("pedidoClienteId");
-    // Navegar a Enproceso para ver el nuevo pedido en la lista
-    navigate('/pages/Enproceso');
-  } catch (e) {
-    console.log("Error:", e);
-  }
-};
-
+  };
 
   return (
     <div
@@ -158,53 +156,52 @@ const registrarPedido = async () => {
           </h1>
 
           <div
-  style={{
-    marginTop: "16px",
-    display: "flex",
-    alignItems: "center",
-    gap: "12px"
-  }}
->
-  <span style={{ color: "#6B7280", fontSize: "14px", fontWeight: "500" }}>
-    Cliente ID:
-  </span>
+            style={{
+              marginTop: "16px",
+              display: "flex",
+              alignItems: "center",
+              gap: "12px"
+            }}
+          >
+            <span style={{ color: "#6B7280", fontSize: "14px", fontWeight: "500" }}>
+              Cliente ID:
+            </span>
 
-  <span
-    style={{
-      background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
-      color: "white",
-      padding: "6px 18px",
-      borderRadius: "24px",
-      fontWeight: "700",
-      fontSize: "14px",
-      boxShadow: "0 4px 6px -1px rgba(255, 102, 0, 0.3)"
-    }}
-  >
-    #{clienteId || "No seleccionado"}
-  </span>
+            <span
+              style={{
+                background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
+                color: "white",
+                padding: "6px 18px",
+                borderRadius: "24px",
+                fontWeight: "700",
+                fontSize: "14px",
+                boxShadow: "0 4px 6px -1px rgba(255, 102, 0, 0.3)"
+              }}
+            >
+              #{clienteId || "No seleccionado"}
+            </span>
 
-  {/* Nuevo botón para limpiar selección */}
-  {clienteId && (
-    <button
-      style={{
-        padding: "6px 14px",
-        background: "#EF4444",
-        color: "white",
-        border: "none",
-        borderRadius: "8px",
-        cursor: "pointer",
-        fontSize: "12px",
-        fontWeight: "700"
-      }}
-      onClick={() => {
-        localStorage.removeItem("pedidoClienteId");
-        window.location.reload();
-      }}
-    >
-      ❌ Quitar cliente
-    </button>
-  )}
-</div>
+            {clienteId && (
+              <button
+                style={{
+                  padding: "6px 14px",
+                  background: "#EF4444",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: "700"
+                }}
+                onClick={() => {
+                  localStorage.removeItem("pedidoClienteId");
+                  window.location.reload();
+                }}
+              >
+                ❌ Quitar cliente
+              </button>
+            )}
+          </div>
         </div>
 
         <div
@@ -214,8 +211,6 @@ const registrarPedido = async () => {
             gap: "30px"
           }}
         >
-         
-
           {/* IZQUIERDA: PRODUCTOS */}
           <div>
             <div
@@ -245,121 +240,134 @@ const registrarPedido = async () => {
                 Menú de Productos
               </h3>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(auto-fill, minmax(200px, 1fr))",
-                  gap: "16px",
-                  maxHeight: "calc(100vh - 300px)",
-                  overflowY: "auto",
-                  paddingRight: "10px"
-                }}
-              >
-                {productos.map((p, index) => (
-                  <div
-                    key={p.id}
-                    className="product-card"
-                    style={{
-                      background: "white",
-                      borderRadius: "16px",
-                      padding: "20px",
-                      border: "none",
-                      cursor: "pointer",
-                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                      animation: `fadeIn 0.3s ease-out ${index * 0.05}s backwards`,
-                      position: "relative",
-                      overflow: "hidden",
-                      display: 'flex',
-                      flexDirection: 'column',
-                      height: '100%'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-8px)";
-                      e.currentTarget.style.boxShadow = "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)";
-                    }}
-                  >
-                    {/* Placeholder de imagen con icono */}
+              {productos.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "50px 20px" }}>
+                  <div style={{ fontSize: "64px", marginBottom: "16px" }}>📦</div>
+                  <h4 style={{ color: "#6B7280", marginBottom: "8px" }}>
+                    No hay productos disponibles
+                  </h4>
+                  <p style={{ color: "#9CA3AF", fontSize: "14px" }}>
+                    Todos los productos están inactivos o no hay productos registrados
+                  </p>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                    gap: "16px",
+                    maxHeight: "calc(100vh - 300px)",
+                    overflowY: "auto",
+                    paddingRight: "10px"
+                  }}
+                >
+                  {productos.map((p, index) => (
                     <div
+                      key={p.id}
+                      className="product-card"
                       style={{
-                        width: "100%",
-                        height: "120px",
-                        background: "linear-gradient(135deg, #FFF5EB 0%, #FFE8D6 100%)",
-                        borderRadius: "12px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginBottom: "16px",
-                        fontSize: "48px"
+                        background: "white",
+                        borderRadius: "16px",
+                        padding: "20px",
+                        border: "none",
+                        cursor: "pointer",
+                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                        animation: `fadeIn 0.3s ease-out ${index * 0.05}s backwards`,
+                        position: "relative",
+                        overflow: "hidden",
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: '100%'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "translateY(-8px)";
+                        e.currentTarget.style.boxShadow = "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)";
                       }}
                     >
-                      🍕
-                    </div>
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "120px",
+                          background: p.imagenUrl 
+                            ? `url(${p.imagenUrl}) center/cover no-repeat`
+                            : "linear-gradient(135deg, #FFF5EB 0%, #FFE8D6 100%)",
+                          borderRadius: "12px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginBottom: "16px",
+                          fontSize: "48px",
+                          backgroundSize: "cover",
+                          backgroundPosition: "center"
+                        }}
+                      >
+                        {!p.imagenUrl && "🍕"}
+                      </div>
 
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                      <div>
-                        <div
-                          style={{
-                            fontWeight: "700",
-                            fontSize: "17px",
-                            marginBottom: "8px",
-                            color: "#1F2937",
-                            lineHeight: "1.3"
-                          }}
-                        >
-                          {p.nombre}
-                        </div>
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div>
+                          <div
+                            style={{
+                              fontWeight: "700",
+                              fontSize: "17px",
+                              marginBottom: "8px",
+                              color: "#1F2937",
+                              lineHeight: "1.3"
+                            }}
+                          >
+                            {p.nombre}
+                          </div>
 
-                        <div
-                          style={{
-                            fontSize: "24px",
-                            fontWeight: "800",
-                            background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent",
-                            marginBottom: "16px"
-                          }}
-                        >
-                          ${p.precio.toFixed(2)}
+                          <div
+                            style={{
+                              fontSize: "24px",
+                              fontWeight: "800",
+                              background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              marginBottom: "16px"
+                            }}
+                          >
+                            ${p.precio.toFixed(2)}
+                          </div>
                         </div>
                       </div>
 
+                      <button
+                        onClick={() => agregarProducto(p.id)}
+                        style={{
+                          width: "100%",
+                          padding: "12px",
+                          background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
+                          border: "none",
+                          borderRadius: "10px",
+                          color: "white",
+                          fontWeight: "600",
+                          fontSize: "14px",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          boxShadow: "0 4px 6px -1px rgba(255, 102, 0, 0.2)"
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "scale(0.98)";
+                          e.currentTarget.style.boxShadow = "0 2px 4px -1px rgba(255, 102, 0, 0.3)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "scale(1)";
+                          e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(255, 102, 0, 0.2)";
+                        }}
+                      >
+                        ➕ Agregar
+                      </button>
                     </div>
-
-                    <button
-                      onClick={() => agregarProducto(p.id)}
-                      style={{
-                        width: "100%",
-                        padding: "12px",
-                        background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
-                        border: "none",
-                        borderRadius: "10px",
-                        color: "white",
-                        fontWeight: "600",
-                        fontSize: "14px",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        boxShadow: "0 4px 6px -1px rgba(255, 102, 0, 0.2)"
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "scale(0.98)";
-                        e.currentTarget.style.boxShadow = "0 2px 4px -1px rgba(255, 102, 0, 0.3)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "scale(1)";
-                        e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(255, 102, 0, 0.2)";
-                      }}
-                    >
-                      ➕ Agregar
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -394,7 +402,6 @@ const registrarPedido = async () => {
                 Información del Pedido
               </h3>
 
-              {/* DIRECCIÓN */}
               <div style={{ marginBottom: "18px" }}>
                 <label
                   style={{
@@ -435,7 +442,6 @@ const registrarPedido = async () => {
                 />
               </div>
 
-              {/* OBSERVACIONES */}
               <div style={{ marginBottom: "16px" }}>
                 <label
                   style={{
@@ -465,7 +471,6 @@ const registrarPedido = async () => {
                 />
               </div>
 
-              {/* TIPO */}
               <div style={{ marginBottom: "16px" }}>
                 <label
                   style={{
@@ -495,7 +500,6 @@ const registrarPedido = async () => {
                 </select>
               </div>
 
-              {/* MÉTODO DE PAGO */}
               <div style={{ marginBottom: "16px" }}>
                 <label
                   style={{
@@ -697,7 +701,6 @@ const registrarPedido = async () => {
                     })}
                   </div>
 
-                  {/* TOTAL */}
                   <div
                     style={{
                       background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
@@ -733,7 +736,6 @@ const registrarPedido = async () => {
                     </div>
                   </div>
 
-                  {/* BOTÓN REGISTRAR */}
                   <button
                     onClick={registrarPedido}
                     style={{

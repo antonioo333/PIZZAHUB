@@ -17,7 +17,9 @@ import {
   CTableRow,
   CTableHeaderCell,
   CTableBody,
-  CTableDataCell
+  CTableDataCell,
+  CFormSelect,
+  CSpinner
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilUser, cilLockLocked, cilEnvelopeClosed, cilUserPlus, cilPhone } from '@coreui/icons'
@@ -33,6 +35,17 @@ const rolToText = (rol) => {
   }
 }
 
+// 🔹 Convertir texto a número de rol
+const textToRol = (texto) => {
+  switch (texto) {
+    case "Administrador": return 0
+    case "Repartidor": return 1
+    case "Empleado": return 2
+    case "Cliente": return 3
+    default: return 3
+  }
+}
+
 const Usuarios = () => {
 
   const [formData, setFormData] = useState({
@@ -43,6 +56,7 @@ const Usuarios = () => {
   })
 
   const [usuarios, setUsuarios] = useState([])
+  const [cambiandoRol, setCambiandoRol] = useState(null)
 
   // 🔹 Cargar usuarios
   const fetchUsuarios = async () => {
@@ -110,6 +124,48 @@ const Usuarios = () => {
     }
   }
 
+  // 🔹 Cambiar rol de usuario
+  const cambiarRol = async (usuarioId, nuevoRolTexto) => {
+    const confirmar = window.confirm(
+      `¿Estás seguro de cambiar el rol a "${nuevoRolTexto}"?`
+    )
+
+    if (!confirmar) return
+
+    try {
+      setCambiandoRol(usuarioId)
+      const token = localStorage.getItem("token")
+
+      const payload = {
+        usuarioId: usuarioId,
+        nuevoRol: nuevoRolTexto
+      }
+
+      const res = await callApi('/api/v1/auth/cambiar-rol', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      })
+
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error('Error al cambiar rol:', errorText)
+        throw new Error('Error al cambiar rol')
+      }
+
+      alert(`✅ Rol cambiado a "${nuevoRolTexto}" correctamente`)
+      fetchUsuarios() // Recargar lista
+
+    } catch (err) {
+      console.error('Error:', err)
+      alert('❌ Error al cambiar el rol')
+    } finally {
+      setCambiandoRol(null)
+    }
+  }
 
   return (
     <div className="page-container" style={{ background: '#F3F4F6', minHeight: '100vh', width: '100%', maxWidth: '100%', margin: 0 }}>
@@ -131,7 +187,7 @@ const Usuarios = () => {
           </div>
         </CCardHeader>
 
-        <CCardBody style={{ backgroundColor: 'white', padding: '30px' }}>,
+        <CCardBody style={{ backgroundColor: 'white', padding: '30px' }}>
           <CForm onSubmit={handleSubmit}>
             <CRow className="g-4">
 
@@ -235,24 +291,74 @@ const Usuarios = () => {
                 <CTableHeaderCell className="fw-bold">Nombre</CTableHeaderCell>
                 <CTableHeaderCell className="fw-bold">Correo</CTableHeaderCell>
                 <CTableHeaderCell className="fw-bold">Teléfono</CTableHeaderCell>
-                <CTableHeaderCell className="fw-bold">Rol</CTableHeaderCell>
+                <CTableHeaderCell className="fw-bold">Rol Actual</CTableHeaderCell>
                 <CTableHeaderCell className="fw-bold">Fecha</CTableHeaderCell>
+                <CTableHeaderCell className="fw-bold text-center">Cambiar Rol</CTableHeaderCell>
               </CTableRow>
             </CTableHead>
 
             <CTableBody>
               {usuarios.map((u) => {
                 const usuarioObj = u.usuario || {}
+                const usuarioId = usuarioObj.id
+                const rolActual = usuarioObj.rol
+
                 return (
                   <CTableRow key={u.id}>
                     <CTableDataCell>{usuarioObj.nombreUsuario || u.nombre}</CTableDataCell>
                     <CTableDataCell>{usuarioObj.correo || '-'}</CTableDataCell>
                     <CTableDataCell>{u.telefono || usuarioObj.telefono || '-'}</CTableDataCell>
-                    <CTableDataCell>{rolToText(usuarioObj.rol)}</CTableDataCell>
+                    <CTableDataCell>
+                      <span
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          background: rolActual === 0 ? '#DBEAFE' : 
+                                     rolActual === 1 ? '#FEF3C7' :
+                                     rolActual === 2 ? '#D1FAE5' : '#FEE2E2',
+                          color: rolActual === 0 ? '#1E40AF' :
+                                 rolActual === 1 ? '#92400E' :
+                                 rolActual === 2 ? '#065F46' : '#991B1B'
+                        }}
+                      >
+                        {rolToText(rolActual)}
+                      </span>
+                    </CTableDataCell>
                     <CTableDataCell>
                       {usuarioObj.fechaCreacion
                         ? new Date(usuarioObj.fechaCreacion).toLocaleDateString()
                         : '-'}
+                    </CTableDataCell>
+                    <CTableDataCell>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
+                        <CFormSelect
+                          size="sm"
+                          disabled={cambiandoRol === usuarioId}
+                          style={{
+                            maxWidth: '160px',
+                            borderRadius: '6px',
+                            border: '2px solid #E5E7EB'
+                          }}
+                          onChange={(e) => {
+                            if (e.target.value && e.target.value !== rolToText(rolActual)) {
+                              cambiarRol(usuarioId, e.target.value)
+                              e.target.value = '' // Reset select
+                            }
+                          }}
+                        >
+                          <option value="">Seleccionar...</option>
+                          {rolActual !== 0 && <option value="Administrador">Administrador</option>}
+                          {rolActual !== 1 && <option value="Repartidor">Repartidor</option>}
+                          {rolActual !== 2 && <option value="Empleado">Empleado</option>}
+                          {rolActual !== 3 && <option value="Cliente">Cliente</option>}
+                        </CFormSelect>
+                        
+                        {cambiandoRol === usuarioId && (
+                          <CSpinner size="sm" style={{ color: '#FF6600' }} />
+                        )}
+                      </div>
                     </CTableDataCell>
                   </CTableRow>
                 )

@@ -1,4 +1,5 @@
-import React, { useState } from "react"
+// ...existing code...
+import React, { useState, useEffect } from "react"
 import {
   CCard,
   CCardHeader,
@@ -11,10 +12,18 @@ import {
   CFormTextarea,
   CFormSelect,
   CButton,
-  CFormCheck
+  CFormCheck,
+  CTable,
+  CTableHead,
+  CTableRow,
+  CTableHeaderCell,
+  CTableBody,
+  CTableDataCell,
+  CSpinner,
+  CBadge
 } from "@coreui/react"
 import callApi from "../utils/apiProxy"
-
+ 
 const RegistrarProductos = () => {
   const initialFormState = {
     nombre: "",
@@ -24,9 +33,37 @@ const RegistrarProductos = () => {
     almacenable: false,
     imagenUrl: ""
   }
-
+ 
   const [formData, setFormData] = useState(initialFormState)
   const [loading, setLoading] = useState(false)
+  const [productos, setProductos] = useState([])
+  const [loadingProductos, setLoadingProductos] = useState(true)
+  const [deleting, setDeleting] = useState(null)
+
+  const token = localStorage.getItem("token")
+ 
+  // Cargar productos
+  const fetchProductos = async () => {
+    try {
+      setLoadingProductos(true)
+      const res = await callApi('/api/Productos', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+
+      if (!res.ok) return
+
+      const data = await res.json()
+      setProductos(data)
+    } catch (err) {
+      console.error("Error al cargar productos:", err)
+    } finally {
+      setLoadingProductos(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchProductos()
+  }, [])
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -35,24 +72,25 @@ const RegistrarProductos = () => {
       [name]: type === "checkbox" ? checked : value
     })
   }
-
+ 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-
+ 
     try {
-      const token = localStorage.getItem("token")
-
-      // Preparar datos (convertir precio a número, imagenUrl null si está vacío)
       const dataToSend = {
-        nombre: formData.nombre,
-        descripcion: formData.descripcion,
-        tipo: formData.tipo,
-        precio: parseFloat(formData.precio),
-        almacenable: formData.almacenable,
-        imagenUrl: formData.imagenUrl.trim() === "" ? null : formData.imagenUrl
+        Nombre: formData.nombre,
+        Descripcion: formData.descripcion,
+        Tipo: formData.tipo,
+        Precio: parseFloat(formData.precio),
+        Almacenable: formData.almacenable,
+        ImagenUrl: formData.imagenUrl && formData.imagenUrl.trim() !== "" 
+          ? formData.imagenUrl 
+          : null
       }
 
+      console.log('Datos a enviar:', dataToSend)
+ 
       const res = await callApi('/api/Productos', {
         method: "POST",
         headers: {
@@ -61,36 +99,78 @@ const RegistrarProductos = () => {
         },
         body: JSON.stringify(dataToSend)
       })
-
+ 
       if (!res.ok) {
-        const errorData = await res.json()
-        throw new Error(errorData.message || "Error al registrar producto")
+        const errorText = await res.text()
+        console.error('Error completo del servidor:', errorText)
+        
+        let errorMessage = "Error al registrar producto"
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.message || errorData.title || errorMessage
+          
+          if (errorData.errors) {
+            const validationErrors = Object.values(errorData.errors).flat().join(', ')
+            errorMessage = validationErrors
+          }
+        } catch {
+          errorMessage = errorText
+        }
+        
+        throw new Error(errorMessage)
       }
-
+ 
       alert("✅ Producto registrado correctamente")
       setFormData(initialFormState)
-
+      fetchProductos() // Recargar lista
+ 
     } catch (err) {
-      console.error(err)
+      console.error('Error completo:', err)
       alert(`❌ Error: ${err.message}`)
     } finally {
       setLoading(false)
     }
   }
 
-  // ============================
-  // Estilos globales del diseño
-  // ============================
+  // Eliminar producto
+  const eliminarProducto = async (id, nombre) => {
+    const confirmar = window.confirm(
+      `¿Estás seguro de eliminar el producto "${nombre}"?`
+    )
+
+    if (!confirmar) return
+
+    try {
+      setDeleting(id)
+      const res = await callApi(`/api/Productos/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      })
+
+      if (!res.ok) {
+        throw new Error("Error al eliminar producto")
+      }
+
+      alert("✅ Producto eliminado correctamente")
+      fetchProductos()
+    } catch (err) {
+      console.error("Error:", err)
+      alert("❌ Error al eliminar producto")
+    } finally {
+      setDeleting(null)
+    }
+  }
+ 
   const inputStyle = {
     padding: "12px",
     borderRadius: "10px",
     border: "2px solid #E5E7EB",
     transition: "0.25s",
   }
-
+ 
   const inputFocus = (e) => (e.target.style.borderColor = "#FF6600")
   const inputBlur = (e) => (e.target.style.borderColor = "#E5E7EB")
-
+ 
   return (
     <div
       className="page-container"
@@ -102,12 +182,14 @@ const RegistrarProductos = () => {
         margin: 0
       }}
     >
+      {/* FORMULARIO DE REGISTRO */}
       <CCard
         className="shadow-lg fade-in"
         style={{
           borderRadius: "20px",
           overflow: "hidden",
-          border: "none"
+          border: "none",
+          marginBottom: "30px"
         }}
       >
         <CCardHeader
@@ -118,18 +200,17 @@ const RegistrarProductos = () => {
           }}
         >
           <h3 className="mb-0" style={{ fontWeight: "700", color: "#1A1C20" }}>
-            🍕 Registrar Nuevo Producto
+            ➕ Registrar Nuevo Producto
           </h3>
           <p className="mb-0 mt-2" style={{ color: "#6B7280", fontSize: "14px" }}>
             Agrega pizzas, bebidas y más productos al menú
           </p>
         </CCardHeader>
-
+ 
         <CCardBody style={{ backgroundColor: "#ffffff", padding: "35px" }}>
           <CForm onSubmit={handleSubmit}>
             <CRow className="g-4">
-
-              {/* Nombre del Producto */}
+ 
               <CCol md={6}>
                 <CFormLabel style={{ fontWeight: "600", color: "#374151" }}>
                   Nombre del Producto *
@@ -145,8 +226,7 @@ const RegistrarProductos = () => {
                   required
                 />
               </CCol>
-
-              {/* Tipo de Producto */}
+ 
               <CCol md={6}>
                 <CFormLabel style={{ fontWeight: "600", color: "#374151" }}>
                   Tipo de Producto *
@@ -161,16 +241,15 @@ const RegistrarProductos = () => {
                   required
                 >
                   <option value="">Seleccione tipo...</option>
-                  <option value="Pizza">🍕 Pizza</option>
-                  <option value="Bebida">🥤 Bebida</option>
-                  <option value="Postre">🍰 Postre</option>
-                  <option value="Entrada">🍟 Entrada</option>
-                  <option value="Complemento">🧀 Complemento</option>
-                  <option value="Otro">📦 Otro</option>
+                  <option value="Pizza">Pizza</option>
+                  <option value="Bebida">Bebida</option>
+                  <option value="Postre">Postre</option>
+                  <option value="Entrada">Entrada</option>
+                  <option value="Complemento">Complemento</option>
+                  <option value="Otro">Otro</option>
                 </CFormSelect>
               </CCol>
-
-              {/* Descripción */}
+ 
               <CCol xs={12}>
                 <CFormLabel style={{ fontWeight: "600", color: "#374151" }}>
                   Descripción *
@@ -187,8 +266,7 @@ const RegistrarProductos = () => {
                   required
                 />
               </CCol>
-
-              {/* Precio */}
+ 
               <CCol md={6}>
                 <CFormLabel style={{ fontWeight: "600", color: "#374151" }}>
                   Precio (MXN) *
@@ -207,24 +285,31 @@ const RegistrarProductos = () => {
                   required
                 />
               </CCol>
-
-              {/* URL de Imagen */}
+ 
               <CCol md={6}>
                 <CFormLabel style={{ fontWeight: "600", color: "#374151" }}>
-                  URL de Imagen (Opcional)
+                  URL de Imagen (Opcional - máx 255 caracteres)
                 </CFormLabel>
                 <CFormInput
                   name="imagenUrl"
                   placeholder="https://ejemplo.com/imagen.jpg"
+                  maxLength={255}
                   style={inputStyle}
                   onFocus={inputFocus}
                   onBlur={inputBlur}
                   value={formData.imagenUrl}
                   onChange={handleInputChange}
                 />
+                <small style={{ color: "#6B7280", display: "block", marginTop: "8px" }}>
+                  Caracteres: {formData.imagenUrl.length}/255
+                </small>
+                {formData.imagenUrl.length > 255 && (
+                  <small style={{ color: "#DC2626", display: "block", marginTop: "4px", fontWeight: "600" }}>
+                    ⚠️ La URL es demasiado larga. Máximo 255 caracteres.
+                  </small>
+                )}
               </CCol>
-
-              {/* Almacenable */}
+ 
               <CCol xs={12}>
                 <div
                   style={{
@@ -241,22 +326,20 @@ const RegistrarProductos = () => {
                     onChange={handleInputChange}
                     label={
                       <span style={{ fontWeight: "600", color: "#374151" }}>
-                        📦 ¿Es un producto almacenable?
+                        ¿Es un producto almacenable?
                       </span>
                     }
                   />
                   <small style={{ color: "#6B7280", display: "block", marginTop: "8px" }}>
                     Marca esta opción si el producto requiere control de inventario (ej: bebidas embotelladas).
-                    Las pizzas generalmente NO son almacenables.
                   </small>
                 </div>
               </CCol>
-
-              {/* Botones */}
+ 
               <CCol xs={12}>
                 <hr style={{ margin: "20px 0", border: "1px solid #E5E7EB" }} />
               </CCol>
-
+ 
               <CCol xs={12} className="d-flex justify-content-end gap-3">
                 <CButton
                   type="button"
@@ -271,26 +354,18 @@ const RegistrarProductos = () => {
                     borderRadius: "12px",
                     transition: "0.2s"
                   }}
-                  onMouseEnter={(e) => {
-                    e.target.style.borderColor = "#9CA3AF"
-                    e.target.style.color = "#374151"
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.borderColor = "#E5E7EB"
-                    e.target.style.color = "#6B7280"
-                  }}
                 >
-                  🔄 Limpiar
+                  Limpiar
                 </CButton>
-
+ 
                 <CButton
                   type="submit"
                   disabled={loading}
                   style={{
                     padding: "14px 28px",
                     fontWeight: "700",
-                    background: loading 
-                      ? "#9CA3AF" 
+                    background: loading
+                      ? "#9CA3AF"
                       : "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
                     border: "none",
                     borderRadius: "12px",
@@ -298,34 +373,25 @@ const RegistrarProductos = () => {
                     boxShadow: "0 4px 6px -1px rgba(255, 102, 0, 0.3)",
                     transition: "0.2s"
                   }}
-                  onMouseEnter={(e) => {
-                    if (!loading) {
-                      e.target.style.transform = "translateY(-2px)"
-                      e.target.style.boxShadow = "0 10px 15px -3px rgba(255, 102, 0, 0.4)"
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = "translateY(0)"
-                    e.target.style.boxShadow = "0 4px 6px -1px rgba(255, 102, 0, 0.3)"
-                  }}
                 >
-                  {loading ? "⏳ Registrando..." : "✅ Registrar Producto"}
+                  {loading ? "Registrando..." : "➕ Registrar Producto"}
                 </CButton>
               </CCol>
-
+ 
             </CRow>
           </CForm>
         </CCardBody>
       </CCard>
 
-      {/* Preview del producto */}
+      {/* VISTA PREVIA */}
       {formData.nombre && (
         <CCard
           className="mt-4 shadow-lg"
           style={{
             borderRadius: "20px",
             overflow: "hidden",
-            border: "none"
+            border: "none",
+            marginBottom: "30px"
           }}
         >
           <CCardHeader
@@ -348,26 +414,26 @@ const RegistrarProductos = () => {
                 alignItems: "start"
               }}
             >
-              {/* Imagen placeholder */}
               <div
                 style={{
                   width: "100%",
                   height: "200px",
-                  background: formData.imagenUrl 
-                    ? `url(${formData.imagenUrl}) center/cover` 
+                  background: formData.imagenUrl
+                    ? `url(${formData.imagenUrl}) center/cover`
                     : "linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%)",
                   borderRadius: "12px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   color: "#9CA3AF",
-                  fontSize: "48px"
+                  fontSize: "48px",
+                  backgroundSize: "cover",
+                  backgroundPosition: "center"
                 }}
               >
                 {!formData.imagenUrl && "🍕"}
               </div>
-
-              {/* Info del producto */}
+ 
               <div>
                 <h3 style={{ fontWeight: "700", color: "#1A1C20", marginBottom: "8px" }}>
                   {formData.nombre || "Nombre del producto"}
@@ -414,7 +480,7 @@ const RegistrarProductos = () => {
                       fontWeight: "600"
                     }}
                   >
-                    {formData.almacenable ? "📦 Almacenable" : "🍕 No almacenable"}
+                    {formData.almacenable ? "Almacenable" : "No almacenable"}
                   </span>
                 </div>
               </div>
@@ -422,8 +488,220 @@ const RegistrarProductos = () => {
           </CCardBody>
         </CCard>
       )}
+
+      {/* TABLA DE PRODUCTOS REGISTRADOS */}
+      <CCard
+        className="shadow-lg fade-in"
+        style={{
+          borderRadius: "20px",
+          overflow: "hidden",
+          border: "none"
+        }}
+      >
+        <CCardHeader
+          style={{
+            background: "white",
+            borderBottom: "3px solid #EF4444",
+            padding: "20px 30px"
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <h3 className="mb-0" style={{ fontWeight: "700", color: "#1A1C20" }}>
+                📋 Productos Registrados
+              </h3>
+              <p className="mb-0 mt-2" style={{ color: "#6B7280", fontSize: "14px" }}>
+                Gestiona y elimina productos del menú
+              </p>
+            </div>
+            <CButton
+              onClick={fetchProductos}
+              disabled={loadingProductos}
+              style={{
+                padding: "10px 20px",
+                fontWeight: "600",
+                background: "linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)",
+                border: "none",
+                borderRadius: "10px",
+                color: "white"
+              }}
+            >
+              🔄 Actualizar
+            </CButton>
+          </div>
+        </CCardHeader>
+
+        <CCardBody style={{ backgroundColor: "#ffffff", padding: "35px" }}>
+          {loadingProductos ? (
+            <div style={{ textAlign: "center", padding: "50px" }}>
+              <CSpinner color="primary" />
+              <p style={{ marginTop: "20px", color: "#6B7280" }}>
+                Cargando productos...
+              </p>
+            </div>
+          ) : productos.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "50px" }}>
+              <div style={{ fontSize: "64px", marginBottom: "16px" }}>📦</div>
+              <h4 style={{ color: "#6B7280" }}>No hay productos registrados</h4>
+            </div>
+          ) : (
+            <>
+              <div style={{ overflowX: "auto" }}>
+                <CTable hover responsive>
+                  <CTableHead>
+                    <CTableRow>
+                      <CTableHeaderCell style={{ background: "#F9FAFB", fontWeight: "700", color: "#374151", padding: "16px" }}>
+                        ID
+                      </CTableHeaderCell>
+                      <CTableHeaderCell style={{ background: "#F9FAFB", fontWeight: "700", color: "#374151", padding: "16px" }}>
+                        Imagen
+                      </CTableHeaderCell>
+                      <CTableHeaderCell style={{ background: "#F9FAFB", fontWeight: "700", color: "#374151", padding: "16px" }}>
+                        Nombre
+                      </CTableHeaderCell>
+                      <CTableHeaderCell style={{ background: "#F9FAFB", fontWeight: "700", color: "#374151", padding: "16px" }}>
+                        Tipo
+                      </CTableHeaderCell>
+                      <CTableHeaderCell style={{ background: "#F9FAFB", fontWeight: "700", color: "#374151", padding: "16px" }}>
+                        Precio
+                      </CTableHeaderCell>
+                      <CTableHeaderCell style={{ background: "#F9FAFB", fontWeight: "700", color: "#374151", padding: "16px" }}>
+                        Estado
+                      </CTableHeaderCell>
+                      <CTableHeaderCell style={{ background: "#F9FAFB", fontWeight: "700", color: "#374151", padding: "16px", textAlign: "center" }}>
+                        Acciones
+                      </CTableHeaderCell>
+                    </CTableRow>
+                  </CTableHead>
+                  <CTableBody>
+                    {productos.map((producto) => (
+                      <CTableRow key={producto.id}>
+                        <CTableDataCell style={{ padding: "16px", fontWeight: "600", color: "#6B7280" }}>
+                          #{producto.id}
+                        </CTableDataCell>
+                        <CTableDataCell style={{ padding: "16px" }}>
+                          <div
+                            style={{
+                              width: "60px",
+                              height: "60px",
+                              borderRadius: "10px",
+                              background: producto.imagenUrl
+                                ? `url(${producto.imagenUrl}) center/cover`
+                                : "linear-gradient(135deg, #FFF5EB 0%, #FFE8D6 100%)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "28px",
+                              backgroundSize: "cover",
+                              backgroundPosition: "center"
+                            }}
+                          >
+                            {!producto.imagenUrl && "🍕"}
+                          </div>
+                        </CTableDataCell>
+                        <CTableDataCell style={{ padding: "16px", fontWeight: "600", color: "#1F2937" }}>
+                          {producto.nombre}
+                        </CTableDataCell>
+                        <CTableDataCell style={{ padding: "16px" }}>
+                          <CBadge style={{ padding: "6px 12px", background: "#FEF3C7", color: "#92400E", fontWeight: "600", border: "none" }}>
+                            {producto.tipo}
+                          </CBadge>
+                        </CTableDataCell>
+                        <CTableDataCell style={{ padding: "16px", fontWeight: "700", color: "#FF6600", fontSize: "16px" }}>
+                          ${producto.precio.toFixed(2)}
+                        </CTableDataCell>
+                        <CTableDataCell style={{ padding: "16px" }}>
+                          <CBadge
+                            style={{
+                              padding: "6px 12px",
+                              background: producto.activo ? "#D1FAE5" : "#FEE2E2",
+                              color: producto.activo ? "#065F46" : "#991B1B",
+                              fontWeight: "600",
+                              border: "none"
+                            }}
+                          >
+                            {producto.activo ? "✓ Activo" : "✗ Inactivo"}
+                          </CBadge>
+                        </CTableDataCell>
+                        <CTableDataCell style={{ padding: "16px", textAlign: "center" }}>
+                          <CButton
+                            color="danger"
+                            onClick={() => eliminarProducto(producto.id, producto.nombre)}
+                            disabled={deleting === producto.id}
+                            style={{
+                              padding: "8px 20px",
+                              fontWeight: "600",
+                              borderRadius: "8px",
+                              border: "none",
+                              background: deleting === producto.id
+                                ? "#9CA3AF"
+                                : "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)",
+                              color: "white",
+                              boxShadow: "0 2px 4px rgba(239, 68, 68, 0.3)",
+                              transition: "all 0.2s ease"
+                            }}
+                          >
+                            {deleting === producto.id ? (
+                              <>
+                                <CSpinner size="sm" /> Eliminando...
+                              </>
+                            ) : (
+                              "🗑️ Eliminar"
+                            )}
+                          </CButton>
+                        </CTableDataCell>
+                      </CTableRow>
+                    ))}
+                  </CTableBody>
+                </CTable>
+              </div>
+
+              {/* Resumen */}
+              <div
+                style={{
+                  marginTop: "30px",
+                  padding: "20px",
+                  background: "#F9FAFB",
+                  borderRadius: "12px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center"
+                }}
+              >
+                <div style={{ display: "flex", gap: "30px" }}>
+                  <div>
+                    <span style={{ color: "#6B7280", fontSize: "14px" }}>
+                      Total de productos:
+                    </span>
+                    <span style={{ marginLeft: "8px", fontWeight: "700", fontSize: "18px", color: "#1F2937" }}>
+                      {productos.length}
+                    </span>
+                  </div>
+                  <div>
+                    <span style={{ color: "#6B7280", fontSize: "14px" }}>
+                      Activos:
+                    </span>
+                    <span style={{ marginLeft: "8px", fontWeight: "700", fontSize: "18px", color: "#10B981" }}>
+                      {productos.filter((p) => p.activo).length}
+                    </span>
+                  </div>
+                  <div>
+                    <span style={{ color: "#6B7280", fontSize: "14px" }}>
+                      Inactivos:
+                    </span>
+                    <span style={{ marginLeft: "8px", fontWeight: "700", fontSize: "18px", color: "#EF4444" }}>
+                      {productos.filter((p) => !p.activo).length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </CCardBody>
+      </CCard>
     </div>
   )
 }
-
+ 
 export default RegistrarProductos
+// ...existing code...
