@@ -25,6 +25,7 @@ const Caja = ({ token, empleadoId }) => {
   const tokenLocal = token || localStorage.getItem("token");
   const [resumenCaja, setResumenCaja] = useState(null);
   const [resumenVisible, setResumenVisible] = useState(false);
+  // Nota: cambios UI aplicados — quitar checkbox y mejorar modal de cierre
 
   // Obtener caja abierta al cargar
   const fetchCaja = async () => {
