@@ -9,12 +9,14 @@ import {
   CFormLabel,
 } from "@coreui/react";
 import { getCajaAbierta, abrirCaja, cerrarCaja } from "../api/caja";
+import { getMiEmpleado } from "../api/empleados";
 
 const Caja = ({ token, empleadoId }) => {
   const [cajaAbierta, setCajaAbierta] = useState(null);
   const [saldoInicial, setSaldoInicial] = useState("");
   const [saldoFinal, setSaldoFinal] = useState("");
   const [fechaApertura, setFechaApertura] = useState("");
+  const [empleadoIdLocal, setEmpleadoIdLocal] = useState(empleadoId || "");
 
   // Obtener caja abierta al cargar
   const fetchCaja = async () => {
@@ -30,6 +32,27 @@ const Caja = ({ token, empleadoId }) => {
     fetchCaja();
   }, []);
 
+  // Si no se recibió empleadoId por props, intentar obtenerlo desde el usuario logueado
+  useEffect(() => {
+    const ensureEmpleado = async () => {
+      if (empleadoIdLocal) return;
+      try {
+        const userStr = localStorage.getItem("user");
+        const user = userStr ? JSON.parse(userStr) : null;
+        if (user && user.id) {
+          const miEmpleado = await getMiEmpleado(token, user.id);
+          if (miEmpleado && miEmpleado.id) {
+            setEmpleadoIdLocal(String(miEmpleado.id));
+          }
+        }
+      } catch (err) {
+        console.warn("No se pudo determinar empleadoId desde el usuario:", err);
+      }
+    };
+
+    ensureEmpleado();
+  }, [token, empleadoIdLocal]);
+
   // Abrir caja
   const handleAbrirCaja = async () => {
     try {
@@ -43,8 +66,11 @@ const Caja = ({ token, empleadoId }) => {
         return;
       }
 
-      console.log('Abrir caja payload:', { saldoInicial, empleadoId, fechaApertura });
-      await abrirCaja(token, saldoInicial, empleadoId, fechaApertura);
+      // Usar el empleadoId local si existe
+      const empleadoParaEnviar = empleadoIdLocal || empleadoId || null;
+
+      console.log("Abrir caja payload:", { saldoInicial, empleadoParaEnviar, fechaApertura });
+      await abrirCaja(token, saldoInicial, empleadoParaEnviar, fechaApertura);
 
       alert("Caja abierta correctamente.");
       fetchCaja();
