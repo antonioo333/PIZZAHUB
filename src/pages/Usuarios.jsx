@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react"
+import callApi from "../utils/apiProxy"
 import {
   CCol,
   CRow,
@@ -22,16 +23,6 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilUser, cilLockLocked, cilEnvelopeClosed, cilUserPlus, cilPhone } from '@coreui/icons'
-
-// Simulación de callApi
-const callApi = async (url, options = {}) => {
-  console.log('API Call:', url, options)
-  return new Response(JSON.stringify({ success: true }), { 
-    ok: true,
-    status: 200,
-    headers: { 'Content-Type': 'application/json' }
-  })
-}
 
 // 🔥 CORREGIDO: Convertir rol numérico a texto
 const rolToText = (rol) => {
@@ -177,7 +168,7 @@ const Usuarios = () => {
   }
 
   return (
-    <div className="page-container" style={{ background: '#F3F4F6', minHeight: '100vh', width: '100%', maxWidth: '100%', margin: 0, padding: '20px' }}>
+    <div className="page-container" style={{ background: '#F3F4F6', minHeight: '100vh', width: '100%', maxWidth: '100%', margin: 0 }}>
 
       {/* ------------------ FORMULARIO MODERNO ------------------ */}
       <CCard className="shadow-lg mb-4 fade-in" style={{ borderRadius: '20px', border: 'none' }}>
@@ -325,13 +316,11 @@ const Usuarios = () => {
                           fontSize: '13px',
                           fontWeight: '600',
                           background: rolActual === 0 ? '#DBEAFE' : 
-                                     rolActual === 1 ? '#D1FAE5' :  // 🔥 Verde para Empleado
-                                     rolActual === 2 ? '#FEF3C7' :  // 🔥 Amarillo para Repartidor
-                                     '#FEE2E2',
+                                     rolActual === 1 ? '#FEF3C7' :
+                                     rolActual === 2 ? '#D1FAE5' : '#FEE2E2',
                           color: rolActual === 0 ? '#1E40AF' :
-                                 rolActual === 1 ? '#065F46' :      // 🔥 Verde oscuro para Empleado
-                                 rolActual === 2 ? '#92400E' :      // 🔥 Marrón para Repartidor
-                                 '#991B1B'
+                                 rolActual === 1 ? '#92400E' :
+                                 rolActual === 2 ? '#065F46' : '#991B1B'
                         }}
                       >
                         {rolToText(rolActual)}
