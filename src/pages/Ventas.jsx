@@ -288,6 +288,8 @@ useEffect(() => {
       alert('Error: ' + (error.message || error));
     }
 
+    };
+
   // -------------------------------
   // REGISTRAR VENTA
   // -------------------------------
