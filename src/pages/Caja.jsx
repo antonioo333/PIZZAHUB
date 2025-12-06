@@ -7,8 +7,13 @@ import {
   CButton,
   CFormInput,
   CFormLabel,
+  CModal,
+  CModalHeader,
+  CModalTitle,
+  CModalBody,
+  CModalFooter,
 } from "@coreui/react";
-import { getCajaAbierta, abrirCaja, cerrarCaja } from "../api/caja";
+import { getCajaAbierta, abrirCaja, cerrarCaja, getResumenCaja } from "../api/caja";
 import { getMiEmpleado } from "../api/empleados";
 
 const Caja = ({ token, empleadoId }) => {
@@ -113,17 +118,40 @@ const Caja = ({ token, empleadoId }) => {
         return;
       }
 
-        await cerrarCaja(tokenLocal, cajaAbierta.id, saldoFinal);
+      const cerrarResult = await cerrarCaja(tokenLocal, cajaAbierta.id, saldoFinal);
+
+      // After closing, fetch the resumen from the dedicated endpoint
+      let resumen = null;
+      try {
+        resumen = await getResumenCaja(tokenLocal, cajaAbierta.id);
+      } catch (err) {
+        // if resumen endpoint fails, try to use the response from close
+        resumen = cerrarResult || null;
+        console.warn("No se pudo obtener resumen vía GET, usando respuesta de cierre:", err);
+      }
 
       alert("Caja cerrada correctamente.");
       fetchCaja();
+      setResumenCaja(resumen);
+      setShowResumen(true);
     } catch (error) {
       console.error(error);
       alert(error.message);
     }
   };
 
+  // Estado para mostrar el resumen tras cerrar
+  const [resumenCaja, setResumenCaja] = useState(null);
+  const [showResumen, setShowResumen] = useState(false);
+
+  const formatCurrency = (v) => {
+    if (v === null || v === undefined) return '-';
+    const n = Number(v) || 0;
+    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
+  };
+
   return (
+    <>
     <CRow>
       <CCol md={6}>
         <CCard>
@@ -197,6 +225,55 @@ const Caja = ({ token, empleadoId }) => {
         </CCard>
       </CCol>
     </CRow>
+    <CModal visible={showResumen} onClose={() => setShowResumen(false)} size="lg">
+      <CModalHeader>
+        <CModalTitle>Resumen de Cierre de Caja</CModalTitle>
+      </CModalHeader>
+      <CModalBody>
+        {resumenCaja ? (
+          <div style={{ gap: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div>
+                <div><strong>Fecha:</strong> {resumenCaja.fecha ? new Date(resumenCaja.fecha).toLocaleString() : (resumenCaja.Fecha ? new Date(resumenCaja.Fecha).toLocaleString() : '-')}</div>
+                <div><strong>Empleado:</strong> {resumenCaja.empleadoNombre || resumenCaja.EmpleadoNombre || '-'}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div><strong>Saldo Inicial:</strong> {formatCurrency(resumenCaja.saldoInicial || resumenCaja.SaldoInicial)}</div>
+                <div><strong>Saldo Final:</strong> {formatCurrency(resumenCaja.saldoFinal || resumenCaja.SaldoFinal)}</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div><strong>Total Ventas:</strong> {formatCurrency(resumenCaja.totalVentas || resumenCaja.TotalVentas)}</div>
+              <div><strong>Cantidad Ventas:</strong> {resumenCaja.cantidadVentas || resumenCaja.CantidadVentas || 0}</div>
+            </div>
+
+            { (resumenCaja.ventasPorMetodoPago || resumenCaja.VentasPorMetodoPago) && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontWeight: 600, marginBottom: 6 }}>Ventas por método</div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <tbody>
+                    {Object.entries(resumenCaja.ventasPorMetodoPago || resumenCaja.VentasPorMetodoPago).map(([k, v]) => (
+                      <tr key={k}>
+                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #eee' }}>{k}</td>
+                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #eee', textAlign: 'right' }}>{formatCurrency(v)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+          </div>
+        ) : (
+          <div>No hay resumen disponible.</div>
+        )}
+      </CModalBody>
+      <CModalFooter>
+        <CButton color="secondary" onClick={() => setShowResumen(false)}>Cerrar</CButton>
+      </CModalFooter>
+    </CModal>
+    </>
   );
 };
 
