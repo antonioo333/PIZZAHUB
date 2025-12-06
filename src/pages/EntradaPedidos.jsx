@@ -270,7 +270,10 @@ const registrarPedido = async () => {
                       boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
                       animation: `fadeIn 0.3s ease-out ${index * 0.05}s backwards`,
                       position: "relative",
-                      overflow: "hidden"
+                      overflow: "hidden",
+                      display: 'flex',
+                      flexDirection: 'column',
+                      height: '100%'
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = "translateY(-8px)";
@@ -298,29 +301,34 @@ const registrarPedido = async () => {
                       🍕
                     </div>
 
-                    <div
-                      style={{
-                        fontWeight: "700",
-                        fontSize: "17px",
-                        marginBottom: "8px",
-                        color: "#1F2937",
-                        lineHeight: "1.3"
-                      }}
-                    >
-                      {p.nombre}
-                    </div>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div>
+                        <div
+                          style={{
+                            fontWeight: "700",
+                            fontSize: "17px",
+                            marginBottom: "8px",
+                            color: "#1F2937",
+                            lineHeight: "1.3"
+                          }}
+                        >
+                          {p.nombre}
+                        </div>
 
-                    <div
-                      style={{
-                        fontSize: "24px",
-                        fontWeight: "800",
-                        background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        marginBottom: "16px"
-                      }}
-                    >
-                      ${p.precio.toFixed(2)}
+                        <div
+                          style={{
+                            fontSize: "24px",
+                            fontWeight: "800",
+                            background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
+                            WebkitBackgroundClip: "text",
+                            WebkitTextFillColor: "transparent",
+                            marginBottom: "16px"
+                          }}
+                        >
+                          ${p.precio.toFixed(2)}
+                        </div>
+                      </div>
+
                     </div>
 
                     <button

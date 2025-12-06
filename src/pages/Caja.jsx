@@ -173,8 +173,8 @@ const Caja = ({ token, empleadoId }) => {
 
   return (
     <>
-    <CRow>
-      <CCol md={6}>
+    <CRow className="justify-content-center">
+      <CCol md={6} style={{ maxWidth: 760 }}>
         <CCard>
           <CCardBody>
             {!cajaAbierta ? (
@@ -185,7 +185,6 @@ const Caja = ({ token, empleadoId }) => {
                       <div style={{ fontSize: 20, fontWeight: 700 }}>Abrir Caja</div>
                       <div style={{ fontSize: 13, color: '#6B7280' }}>Registra el saldo inicial y la fecha de apertura</div>
                     </div>
-                    <div style={{ fontSize: 12, color: '#9CA3AF' }}>Presentación — solo diseño</div>
                   </div>
                 </CCardHeader>
 
@@ -213,14 +212,7 @@ const Caja = ({ token, empleadoId }) => {
                     </div>
                     <div style={{ width: 170 }}>
                       <CFormLabel style={{ fontWeight: 700 }}>Opciones</CFormLabel>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <input
-                          type="checkbox"
-                          checked={aperturaDiaCompleto}
-                          onChange={(e) => setAperturaDiaCompleto(e.target.checked)}
-                        />
-                        <span style={{ fontSize: 13 }}>Día completo</span>
-                      </div>
+                      <div style={{ fontSize: 13, color: '#6B7280' }}>Sin opciones visibles</div>
                     </div>
                   </div>
 
