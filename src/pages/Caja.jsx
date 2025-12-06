@@ -71,10 +71,7 @@ const Caja = ({ token, empleadoId }) => {
         return;
       }
 
-      if (!fechaApertura) {
-        alert("Seleccione la fecha de apertura.");
-        return;
-      }
+      // Fecha de apertura es opcional: si no se especifica, enviaremos el JSON mínimo
 
       // Usar el empleadoId local si existe
       let empleadoParaEnviar = empleadoIdLocal || empleadoId || null;
@@ -102,8 +99,14 @@ const Caja = ({ token, empleadoId }) => {
       }
 
       const windowMinutes = aperturaDiaCompleto ? 1440 : 5;
-      console.log("Abrir caja payload:", { saldoInicial, empleadoParaEnviar, fechaApertura, windowMinutes });
-      await abrirCaja(tokenLocal, saldoInicial, empleadoParaEnviar, fechaApertura, windowMinutes);
+      // Si no hay fechaApertura, enviar el JSON simple que probaste en Swagger
+      if (!fechaApertura) {
+        console.log("Abrir caja payload (simple):", { saldoInicial, empleadoParaEnviar });
+        await abrirCaja(tokenLocal, saldoInicial, empleadoParaEnviar);
+      } else {
+        console.log("Abrir caja payload:", { saldoInicial, empleadoParaEnviar, fechaApertura, windowMinutes });
+        await abrirCaja(tokenLocal, saldoInicial, empleadoParaEnviar, fechaApertura, windowMinutes);
+      }
 
       alert("Caja abierta correctamente.");
       fetchCaja();

@@ -15,10 +15,22 @@ export const getCajaAbierta = async (token) => {
   }
 
   if (!response.ok) {
-    throw new Error("Error al obtener la caja abierta");
+    // Try to read error body safely
+    let text = '';
+    try {
+      text = await response.text();
+    } catch (e) {
+      text = String(e || '');
+    }
+    throw new Error(text || "Error al obtener la caja abierta");
   }
 
-  return response.json();
+  try {
+    return await response.json();
+  } catch (e) {
+    // If body is empty or not JSON, return null to indicate no caja
+    return null;
+  }
 };
 
 /**
@@ -28,29 +40,45 @@ export const getCajaAbierta = async (token) => {
  * Abrir una nueva caja (con fecha elegida manualmente)
  */
 export const abrirCaja = async (token, saldoInicial, empleadoId, fechaApertura, windowMinutes) => {
+  const bodyObj = {
+    saldoInicial: parseFloat(saldoInicial),
+    empleadoId: empleadoId || null,
+  };
+
+  if (fechaApertura) {
+    bodyObj.fecha = new Date(fechaApertura).toISOString();
+  }
+
+  if (windowMinutes) {
+    bodyObj.windowMinutes = parseInt(windowMinutes, 10);
+  }
+
   const response = await callApi('/api/Caja/abrir', {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({
-      saldoInicial: parseFloat(saldoInicial),
-      empleadoId: empleadoId || null,
-      // Enviar la fecha con la clave esperada por el backend (p.ej. 'fecha')
-      // Formateamos a ISO para evitar problemas de zona horaria.
-      fecha: fechaApertura ? new Date(fechaApertura).toISOString() : null,
-      // windowMinutes: controla la ventana de tiempo que considera el backend (1440 = día completo)
-      ...(windowMinutes ? { windowMinutes: parseInt(windowMinutes, 10) } : {}),
-    }),
+    body: JSON.stringify(bodyObj),
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Error al abrir la caja");
+    // Try to parse JSON error, fall back to text
+    try {
+      const errJson = await response.json();
+      throw new Error(errJson.message || JSON.stringify(errJson));
+    } catch (e) {
+      const text = await response.text().catch(() => '');
+      throw new Error(text || 'Error al abrir la caja');
+    }
   }
 
-  return response.json();
+  try {
+    return await response.json();
+  } catch (e) {
+    // If backend returned empty body on success, return an empty object
+    return {};
+  }
 };
 
 
@@ -70,11 +98,20 @@ export const cerrarCaja = async (token, cajaId, saldoFinal) => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Error al cerrar la caja");
+    try {
+      const errJson = await response.json();
+      throw new Error(errJson.message || JSON.stringify(errJson));
+    } catch (e) {
+      const text = await response.text().catch(() => '');
+      throw new Error(text || 'Error al cerrar la caja');
+    }
   }
 
-  return response.json(); // Devuelve el ResumenCajaDto
+  try {
+    return await response.json();
+  } catch (e) {
+    return {};
+  }
 };
 
 /**
@@ -88,10 +125,12 @@ export const getResumenCaja = async (token, cajaId) => {
   });
 
   if (!response.ok) {
-    throw new Error("Error al obtener el resumen de la caja");
+    let text = '';
+    try { text = await response.text(); } catch (e) { text = String(e || ''); }
+    throw new Error(text || "Error al obtener el resumen de la caja");
   }
 
-  return response.json();
+  try { return await response.json(); } catch (e) { return null; }
 };
 
 /**
@@ -105,8 +144,10 @@ export const getHistorialCajas = async (token) => {
   });
 
   if (!response.ok) {
-    throw new Error("Error al obtener el historial de cajas");
+    let text = '';
+    try { text = await response.text(); } catch (e) { text = String(e || ''); }
+    throw new Error(text || "Error al obtener el historial de cajas");
   }
 
-  return response.json();
+  try { return await response.json(); } catch (e) { return []; }
 };

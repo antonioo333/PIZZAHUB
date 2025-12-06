@@ -261,11 +261,10 @@ useEffect(() => {
       const saldoInicial = prompt('Ingresa el saldo inicial (ej: 0):', '0');
       if (saldoInicial === null) return;
 
+      // Enviar JSON simple como en Swagger (sin fecha ni windowMinutes) para compatibilidad
       const body = {
         saldoInicial: parseFloat(saldoInicial) || 0,
         empleadoId: parseInt(empleadoId),
-        fecha: new Date().toISOString(),
-        windowMinutes: 5
       };
 
       const response = await callApi('/api/Caja/abrir', {
