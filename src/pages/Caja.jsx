@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   CCard,
+  CCardHeader,
   CCardBody,
   CRow,
   CCol,
@@ -178,67 +179,103 @@ const Caja = ({ token, empleadoId }) => {
           <CCardBody>
             {!cajaAbierta ? (
               <>
-                <h4>Abrir Caja</h4>
+                <CCardHeader style={{ background: '#fff', borderBottom: '1px solid #eef2f6' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: 20, fontWeight: 700 }}>Abrir Caja</div>
+                      <div style={{ fontSize: 13, color: '#6B7280' }}>Registra el saldo inicial y la fecha de apertura</div>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#9CA3AF' }}>Presentación — solo diseño</div>
+                  </div>
+                </CCardHeader>
 
-                <CFormLabel>Saldo Inicial</CFormLabel>
-                <CFormInput
-                  type="number"
-                  value={saldoInicial}
-                  onChange={(e) => setSaldoInicial(e.target.value)}
-                />
-
-                <CFormLabel className="mt-3">Fecha de apertura</CFormLabel>
-                <CFormInput
-                  type="date"
-                  value={fechaApertura}
-                  onChange={(e) => setFechaApertura(e.target.value)}
-                />
-
-                <div className="mt-2">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="checkbox"
-                      checked={aperturaDiaCompleto}
-                      onChange={(e) => setAperturaDiaCompleto(e.target.checked)}
+                <div style={{ padding: 18, display: 'grid', gap: 12 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <CFormLabel style={{ fontWeight: 700 }}>Saldo Inicial</CFormLabel>
+                    <CFormInput
+                      placeholder="0.00"
+                      style={{ height: 44, fontSize: 15 }}
+                      type="number"
+                      value={saldoInicial}
+                      onChange={(e) => setSaldoInicial(e.target.value)}
                     />
-                    <span style={{ fontSize: '14px' }}>Abrir para todo el día</span>
-                  </label>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <CFormLabel style={{ fontWeight: 700 }}>Fecha de apertura</CFormLabel>
+                      <CFormInput
+                        style={{ height: 44 }}
+                        type="date"
+                        value={fechaApertura}
+                        onChange={(e) => setFechaApertura(e.target.value)}
+                      />
+                    </div>
+                    <div style={{ width: 170 }}>
+                      <CFormLabel style={{ fontWeight: 700 }}>Opciones</CFormLabel>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input
+                          type="checkbox"
+                          checked={aperturaDiaCompleto}
+                          onChange={(e) => setAperturaDiaCompleto(e.target.checked)}
+                        />
+                        <span style={{ fontSize: 13 }}>Día completo</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {empleadoIdLocal && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <CBadge color="info">Empleado</CBadge>
+                      <div style={{ fontSize: 14 }}><strong>{empleadoIdLocal}</strong></div>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+                    <CButton color="primary" onClick={handleAbrirCaja} style={{ padding: '8px 20px', fontWeight: 700 }}>Abrir Caja</CButton>
+                  </div>
                 </div>
-
-                {empleadoIdLocal && (
-                  <p className="mt-2" style={{ fontSize: '14px', color: '#6B7280' }}>
-                    Empleado detectado: <strong>{empleadoIdLocal}</strong>
-                  </p>
-                )}
-
-                <CButton className="mt-3" color="primary" onClick={handleAbrirCaja}>
-                  Abrir Caja
-                </CButton>
               </>
             ) : (
               <>
-                <h4>Caja Abierta</h4>
+                <CCardHeader style={{ background: '#fff', borderBottom: '1px solid #eef2f6' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: 20, fontWeight: 700 }}>Caja Abierta</div>
+                      <div style={{ fontSize: 13, color: '#6B7280' }}>Información de la sesión actual</div>
+                    </div>
+                    <div>
+                      <div style={{ color: '#065F46', fontWeight: 700 }}>Abierta</div>
+                    </div>
+                  </div>
+                </CCardHeader>
 
-                <p>
-                  <strong>ID:</strong> {cajaAbierta.id}
-                </p>
-                <p>
-                  <strong>Fecha Apertura:</strong> {cajaAbierta.fechaApertura}
-                </p>
-                <p>
-                  <strong>Saldo Inicial:</strong> ${cajaAbierta.saldoInicial}
-                </p>
+                <div style={{ padding: 18, display: 'grid', gap: 12 }}>
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: '#6B7280', fontSize: 13 }}>Fecha Apertura</div>
+                      <div style={{ fontSize: 16 }}><strong>{cajaAbierta.fechaApertura}</strong></div>
+                    </div>
+                    <div style={{ width: 200 }}>
+                      <div style={{ color: '#6B7280', fontSize: 13 }}>Saldo Inicial</div>
+                      <div style={{ fontSize: 16 }}><strong>{formatCurrency(cajaAbierta.saldoInicial)}</strong></div>
+                    </div>
+                  </div>
 
-                <CFormLabel>Saldo Final</CFormLabel>
-                <CFormInput
-                  type="number"
-                  value={saldoFinal}
-                  onChange={(e) => setSaldoFinal(e.target.value)}
-                />
+                  <div>
+                    <CFormLabel style={{ fontWeight: 700 }}>Saldo Final</CFormLabel>
+                    <CFormInput
+                      style={{ height: 44 }}
+                      type="number"
+                      value={saldoFinal}
+                      onChange={(e) => setSaldoFinal(e.target.value)}
+                    />
+                  </div>
 
-                <CButton className="mt-3" color="danger" onClick={handleCerrarCaja}>
-                  Cerrar Caja
-                </CButton>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                    <CButton color="danger" onClick={handleCerrarCaja} style={{ padding: '8px 20px', fontWeight: 700 }}>Cerrar Caja</CButton>
+                  </div>
+                </div>
               </>
             )}
           </CCardBody>
