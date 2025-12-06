@@ -27,7 +27,7 @@ export const getCajaAbierta = async (token) => {
 /**
  * Abrir una nueva caja (con fecha elegida manualmente)
  */
-export const abrirCaja = async (token, saldoInicial, empleadoId, fechaApertura) => {
+export const abrirCaja = async (token, saldoInicial, empleadoId, fechaApertura, windowMinutes) => {
   const response = await callApi('/api/Caja/abrir', {
     method: "POST",
     headers: {
@@ -37,9 +37,11 @@ export const abrirCaja = async (token, saldoInicial, empleadoId, fechaApertura) 
     body: JSON.stringify({
       saldoInicial: parseFloat(saldoInicial),
       empleadoId: empleadoId || null,
-      // Enviar la fecha con la clave esperada por el backend (p.ej. 'Fecha')
+      // Enviar la fecha con la clave esperada por el backend (p.ej. 'fecha')
       // Formateamos a ISO para evitar problemas de zona horaria.
       fecha: fechaApertura ? new Date(fechaApertura).toISOString() : null,
+      // windowMinutes: controla la ventana de tiempo que considera el backend (1440 = día completo)
+      ...(windowMinutes ? { windowMinutes: parseInt(windowMinutes, 10) } : {}),
     }),
   });
 

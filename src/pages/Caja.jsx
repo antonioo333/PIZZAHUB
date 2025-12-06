@@ -18,6 +18,7 @@ const Caja = ({ token, empleadoId }) => {
   const [fechaApertura, setFechaApertura] = useState("");
   const [empleadoIdLocal, setEmpleadoIdLocal] = useState(empleadoId || "");
   const tokenLocal = token || localStorage.getItem("token");
+  const [aperturaDiaCompleto, setAperturaDiaCompleto] = useState(false);
 
   // Obtener caja abierta al cargar
   const fetchCaja = async () => {
@@ -92,8 +93,9 @@ const Caja = ({ token, empleadoId }) => {
         return;
       }
 
-      console.log("Abrir caja payload:", { saldoInicial, empleadoParaEnviar, fechaApertura });
-      await abrirCaja(tokenLocal, saldoInicial, empleadoParaEnviar, fechaApertura);
+      const windowMinutes = aperturaDiaCompleto ? 1440 : 5;
+      console.log("Abrir caja payload:", { saldoInicial, empleadoParaEnviar, fechaApertura, windowMinutes });
+      await abrirCaja(tokenLocal, saldoInicial, empleadoParaEnviar, fechaApertura, windowMinutes);
 
       alert("Caja abierta correctamente.");
       fetchCaja();
@@ -111,7 +113,7 @@ const Caja = ({ token, empleadoId }) => {
         return;
       }
 
-      await cerrarCaja(token, cajaAbierta.id, saldoFinal);
+        await cerrarCaja(tokenLocal, cajaAbierta.id, saldoFinal);
 
       alert("Caja cerrada correctamente.");
       fetchCaja();
@@ -143,6 +145,23 @@ const Caja = ({ token, empleadoId }) => {
                   value={fechaApertura}
                   onChange={(e) => setFechaApertura(e.target.value)}
                 />
+
+                <div className="mt-2">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="checkbox"
+                      checked={aperturaDiaCompleto}
+                      onChange={(e) => setAperturaDiaCompleto(e.target.checked)}
+                    />
+                    <span style={{ fontSize: '14px' }}>Abrir para todo el día</span>
+                  </label>
+                </div>
+
+                {empleadoIdLocal && (
+                  <p className="mt-2" style={{ fontSize: '14px', color: '#6B7280' }}>
+                    Empleado detectado: <strong>{empleadoIdLocal}</strong>
+                  </p>
+                )}
 
                 <CButton className="mt-3" color="primary" onClick={handleAbrirCaja}>
                   Abrir Caja
