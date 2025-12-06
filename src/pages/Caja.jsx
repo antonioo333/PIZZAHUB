@@ -12,6 +12,7 @@ import {
   CModalTitle,
   CModalBody,
   CModalFooter,
+  CBadge,
 } from "@coreui/react";
 import { getCajaAbierta, abrirCaja, cerrarCaja, getResumenCaja } from "../api/caja";
 import { getMiEmpleado } from "../api/empleados";
@@ -150,6 +151,25 @@ const Caja = ({ token, empleadoId }) => {
     return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
   };
 
+  const highlightStyle = (ok) => ({
+    padding: '6px 10px',
+    borderRadius: 6,
+    background: ok ? '#ECFDF5' : '#FEF2F2',
+    color: ok ? '#065F46' : '#991B1B',
+    display: 'inline-block',
+    fontWeight: 700,
+  });
+
+  const computeResumenNumbers = (r) => {
+    if (!r) return { si: 0, tv: 0, sf: 0, expected: 0, diff: 0 };
+    const si = Number(r.saldoInicial ?? r.SaldoInicial ?? 0) || 0;
+    const tv = Number(r.totalVentas ?? r.TotalVentas ?? 0) || 0;
+    const sf = Number(r.saldoFinal ?? r.SaldoFinal ?? 0) || 0;
+    const expected = si + tv;
+    const diff = sf - expected;
+    return { si, tv, sf, expected, diff };
+  };
+
   return (
     <>
     <CRow>
@@ -230,6 +250,18 @@ const Caja = ({ token, empleadoId }) => {
         <CModalTitle>Resumen de Cierre de Caja</CModalTitle>
       </CModalHeader>
       <CModalBody>
+        {resumenCaja && (() => {
+          const { si, tv, sf, expected, diff } = computeResumenNumbers(resumenCaja);
+          const ok = Math.abs(diff) < 0.01;
+          return (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div style={highlightStyle(ok)}>{ok ? 'Balance OK' : `Diferencia ${formatCurrency(diff)}`}</div>
+                <div style={{ fontSize: 13, color: '#6B7280' }}>Esperado: {formatCurrency(expected)} • Real: {formatCurrency(sf)}</div>
+              </div>
+            </>
+          )
+        })()}
         {resumenCaja ? (
           <div style={{ gap: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
